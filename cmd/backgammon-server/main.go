@@ -16,15 +16,16 @@ type Move struct {
 }
 
 type MakeMoveData struct {
-	BoardStr string `json:"board_str" binding:"required"`
-	Move     Move   `json:"move" binding:"required"`
+	BoardStr  string `json:"board_str" binding:"required"`
+	Move      Move   `json:"move" binding:"required"`
+	EndOfTurn bool   `json:"end_of_turn"`
 }
 
-func getMoves(c *gin.Context) {
+func getMoveRolls(c *gin.Context) {
 	boardStr := c.Param("board")
 	die1, _ := strconv.Atoi(c.Param("die1"))
 	die2, _ := strconv.Atoi(c.Param("die2"))
-	moveRolls := game.GetMovesForSerializedBoard(boardStr, board.DieRoll{Die1: die1, Die2: die2})
+	moveRolls := game.GetMoveRollsForSerializedBoard(boardStr, board.DieRoll{Die1: die1, Die2: die2})
 	movesMap := map[Move]bool{}
 
 	for idx := 0; idx < len(moveRolls); idx++ {
@@ -46,6 +47,23 @@ func getMoves(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"moves": movesToRet})
 }
 
+func getMovesForOneDie(c *gin.Context) {
+	boardStr := c.Param("board")
+	die, _ := strconv.Atoi(c.Param("die"))
+	moves := game.GetMovesForSerializedBoard(boardStr, die)
+	movesToRet := []Move{}
+	for idx := 0; idx < len(moves); idx++ {
+		mvType := "NORMAL_MOVE"
+		if moves[idx].Type == board.CHECKER_ON_BAR_MOVE {
+			mvType = "CHECKER_ON_BAR_MOVE"
+		} else if moves[idx].Type == board.BEARING_OFF_MOVE {
+			mvType = "BEARING_OFF_MOVE"
+		}
+		movesToRet = append(movesToRet, Move{From: int(moves[idx].From), To: int(moves[idx].To), MoveType: mvType})
+	}
+	c.JSON(http.StatusOK, gin.H{"moves": movesToRet})
+}
+
 func makeMove(c *gin.Context) {
 	var input MakeMoveData
 
@@ -63,7 +81,7 @@ func makeMove(c *gin.Context) {
 	}
 
 	move := board.Move{From: board.PointIndex(jsonMove.From), To: board.PointIndex(jsonMove.To), Type: mvType}
-	c.JSON(http.StatusOK, gin.H{"data": game.MakeMoveOnSerializedBoard(input.BoardStr, move)})
+	c.JSON(http.StatusOK, gin.H{"board": game.MakeMoveOnSerializedBoard(input.BoardStr, move, input.EndOfTurn)})
 }
 
 func CORSMiddleware() gin.HandlerFunc {
@@ -88,7 +106,8 @@ func main() {
 	r.Use(CORSMiddleware())
 	r.UseRawPath = true
 	// r.UnescapePathValues = false
-	r.GET("/moves/:board/:die1/:die2", getMoves)
-	r.POST("/makeMove", makeMove)
+	r.GET("/move-rolls/:board/:die1/:die2", getMoveRolls)
+	r.GET("/moves/:board/:die", getMovesForOneDie)
+	r.POST("/move", makeMove)
 	r.Run() // listen and serve on 0.0.0.0:8080
 }

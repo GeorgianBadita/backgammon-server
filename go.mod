@@ -3,7 +3,7 @@ module github.com/GeorgianBadita/backgammon-server
 go 1.19
 
 require (
-	github.com/GeorgianBadita/backgammon-move-generator v0.5.0 // indirect
+	github.com/GeorgianBadita/backgammon-move-generator v0.7.0 // indirect
 	github.com/bytedance/sonic v1.8.2 // indirect
 	github.com/chenzhuoyu/base64x v0.0.0-20221115062448-fe3a3abad311 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
